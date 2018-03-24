@@ -1,68 +1,35 @@
 const express = require('express');
 const graphqlHTTP = require('express-graphql');
-
 const app = express();
+const mongoose = require('mongoose');
+const schema = require('./schema/index');
+const cors = require('cors');
+const path = require('path');
+const postUploads = require('./upload/post.files');
+const router = require('./router/index');
 
-const {
-  graphql,
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLInt,
-  GraphQLFloat,
-  GraphQLEnumType,
-  GraphQLString,
-  GraphQLList
-} = require('graphql');
+// db connections
+// mongoose.connect('mongodb://kapko19:123123@ds257627.mlab.com:57627/kvartirka');
+mongoose.connect('localhost:27017/kvartira');
 
-var data = [
-  {id: "1", name: "kapko"},
-  {id: "2", name: "john"},
-  {id: "3", name: "smitt"},
-]
-
-const usersTypes = new GraphQLObjectType({
-  name: 'customs',
-  fields: () => ({
-    name: {type: GraphQLString},
-    id: {type: GraphQLString}
-  })
+// static files
+app.use(express.static(path.join(__dirname, '/')));
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
 });
 
-var MyGraphQLSchema = new GraphQLSchema({
-  query: new GraphQLObjectType({
-    name: 'RootQueryType',
-    fields: {
-      getString: {
-        type: GraphQLFloat,
-        resolve() {
-          return 123123123123
-        }
-      },
-      customer:{
-        type:usersTypes,
-        args:{
-          id:{type:GraphQLString},
-          name: {type: GraphQLString}
-        },
-        resolve(parentValue, args){
-          return {id: args.id, name: args.name};
-        }
-      },
-      users: {
-        type: new GraphQLList(usersTypes),
-        resolve(parentValue, args){
-          return data
-        }
-      }
-    }
-  })
+// save post files
+app.post("/upload-post-files", postUploads.array("uploads[]", 10), function (req, res) {
+  res.send(req.files);
 });
 
-app.use('/graphql', graphqlHTTP({
-  schema: MyGraphQLSchema,
-  graphiql: true
-}));
+const db = mongoose.connection;
+db.on('error', () => console.error('CONNECT ERROR'))
+  .once('open', () => console.log('working in kvartirka'))
+// api
+app.use('/api', router);
 
 app.listen(4000);
-
 console.log('post is =', 4000);
